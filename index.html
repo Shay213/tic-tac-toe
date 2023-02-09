@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic Tac Toe</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div class="center-game">
+        <div class="game-container">
+            <div class="menu">
+                <select name="lvl" id="lvl">
+                    <option value="easy">Easy</option>
+                    <option value="intermediate">Intermediate</option>
+                    <option value="impossible">Impossible</option>
+                    <option value="friends">Play with friends</option>
+                </select>
+                <div class="score">
+                    <div class="player-x"><span>X</span><span>1</span></div>
+                    <div class="player-y"><span>O</span><span>2</span></div>
+                </div>
+            </div>
+            <div class="board-container">
+                <div class="board"></div>
+            </div>
+            <div>
+                <button type="button">Play Again</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="javascript.js"></script>
+</body>
+</html>
