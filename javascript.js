@@ -1,9 +1,5 @@
 const gameFlow = (function(){
     let boardCells;
-    let playersChoices = {
-        x: [],
-        o: []
-    };
     let playerTurn = 'x';
 
     let _gameStart = function(){
@@ -17,22 +13,38 @@ const gameFlow = (function(){
         });
 
         function boardCellsControl(e){
-            console.log(player1.getPlayAs());
             let chosenCell = e.currentTarget;
             let chosenCellValue = chosenCell.dataset.cell;
-            // make chosenCell unavailable 
             chosenCell.removeEventListener('click', boardCellsControl);
-            
+            let {playerX, playerO} = _whoIsX();
+
             if(playerTurn === 'x'){
-                playersChoices.x.push(chosenCellValue);
+                playerX.setChoices(chosenCellValue);
                 _drawX(chosenCell.querySelector('canvas'));
                 playerTurn = 'o';
             }
             else if(playerTurn === 'o'){
-                playersChoices.o.push(chosenCellValue);
+                playerO.setChoices(chosenCellValue);
                 _drawCircle(chosenCell.querySelector('canvas'));
                 playerTurn = 'x';
             }
+
+            console.log(playerX.getChoices());
+            console.log(playerO.getChoices());
+        }
+    };
+
+    let _whoIsX = function(){
+        if(player1.getPlayAs() === 'x'){
+            return {
+                playerX: player1,
+                playerO: enemy1
+            };
+        } else{
+            return {
+                playerX: enemy1,
+                playerO: player1
+            };
         }
     };
 
@@ -182,10 +194,20 @@ const gameFlow = (function(){
 const Player = () => {
     let difficulty = 'easy';
     let playAs = 'x';
+    let choices = [];
     
     let getPlayAs = () => playAs;
-    return {getPlayAs,};
+    let getChoices = () => choices;
+    let setChoices = (choice) => choices.push(choice);
+    return {getPlayAs,getChoices,setChoices};
+};
+
+const Enemy = () => {
+    let choices = [];
+    const {getChoices, setChoices} = Player();
+    return {getChoices,setChoices};
 };
 
 const player1 = Player();
+const enemy1 = Enemy(); 
 gameFlow.init();
