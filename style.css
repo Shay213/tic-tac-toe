@@ -124,8 +124,6 @@ body{
 }
 
 /* Border Animation End*/
-.board > div {
-}
 
 .game-container > div:last-of-type{
     display: flex;
