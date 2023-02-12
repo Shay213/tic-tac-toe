@@ -10,6 +10,9 @@ const gameFlow = (function(){
     let boardContainer = document.querySelector('.board-container');
     let roundEndMessage = document.querySelector('.round-end-message');
     let roundEndContainer = document.querySelector('.round-end');
+    let canvasCrossLine = document.querySelector('.round-end canvas:first-child');
+    let canvasContainer = document.querySelector('.round-end .canvas-container');
+    let canvasMessage = roundEndContainer.querySelector('.canvas-container canvas');
     const WINNING_COMBINATIONS =[['1','2','3'],['4','5','6'],['7','8','9'],
                                 ['1','4','7'],['2','5','8'],['3','6','9'],
                                 ['1','5','9'],['3','5','7']
@@ -95,6 +98,16 @@ const gameFlow = (function(){
                     roundEndContainer.style.display = 'none';
                     roundEndMessage.style.display = 'none';
                     roundEndContainer.style.backgroundColor = 'transparent';
+
+                    // if draw
+                    if(unavailableCells === 9){
+                        canvasContainer.removeChild(canvasContainer.querySelector('.clone'));
+                        canvasMessage.style.width = '100%';
+                        roundEndContainer.style.display = 'none';
+                        roundEndMessage.style.display = 'none';
+                        roundEndContainer.style.width = '230px';
+                        canvasCrossLine.style.display = 'block';
+                    }
                 }
 
             },1100);
@@ -166,21 +179,40 @@ const gameFlow = (function(){
     };
 
     let _roundEndAnimation = function(winner, unavailableCells, wonCombination){
-        let canvasCrossLine = document.querySelector('.round-end canvas:first-child');
-        let canvasContainer = document.querySelector('.round-end .canvas-container');
-        let canvasMessage = roundEndContainer.querySelector('.canvas-container canvas');
         let text = roundEndContainer.querySelector('h1');
 
         // DRAW
         if(unavailableCells === 9){
             let canvasClone = canvasMessage.cloneNode();
+            canvasClone.classList.add('clone');
             canvasContainer.appendChild(canvasClone);
             canvasMessage.style.width = '40%';
             canvasClone.style.width = '40%';
+            roundEndContainer.style.display = 'block';
+            roundEndMessage.style.display = 'block';
             roundEndContainer.style.width = '360px';
+            roundEndContainer.style.backgroundColor = '#2dd4bf';
+            canvasCrossLine.style.display = 'none';
+            roundEndContainer.style.opacity = '0';
+
             _drawCircle(canvasMessage);
             _drawX(canvasClone);
             text.innerHTML = 'DRAW!';
+            setTimeout(function(){
+                
+
+                roundEndContainer.animate([
+                    {
+                        opacity: '0'
+                    },
+                    {
+                        opacity: '1'
+                    }
+                ],600);
+
+                roundEndContainer.style.opacity = '1';
+
+            }, 600);
         }
         else{ //WINNER
             roundEndContainer.style.display = 'block';
@@ -418,6 +450,19 @@ const gameFlow = (function(){
         board.classList.remove('hide');
         playerTurn = 'x';
         boardContainer.style.cursor = 'auto';
+        roundEndContainer.style.display = 'none';
+        roundEndMessage.style.display = 'none';
+        roundEndContainer.style.backgroundColor = 'transparent';
+
+        // reset for draw screen message
+        let canvasClone = canvasContainer.querySelector('.clone');
+        if(canvasClone)
+            canvasContainer.removeChild(canvasClone);
+        canvasMessage.style.width = '100%';
+        roundEndContainer.style.display = 'none';
+        roundEndMessage.style.display = 'none';
+        roundEndContainer.style.width = '230px';
+        canvasCrossLine.style.display = 'block';
 
         setTimeout(function() {
             boardCells.forEach(el => {
@@ -479,7 +524,7 @@ const gameFlow = (function(){
             curPer++;
             if(curPer < endPercent) {
                 requestAnimationFrame(function(){
-                    draw(curPer/100);
+                    draw(curPer/80);
                 });
             }
         }
