@@ -2,35 +2,42 @@ const gameFlow = (function(){
     let boardCells;
     let playerTurn = 'x';
     let playVsFriend = false;
-    let playerXScoreBoard = document.querySelector('.player-x');
-    let playerOScoreBoard = document.querySelector('.player-o');
-    let message = document.querySelector('.round-end');
-    let board = document.querySelector('.board');
-    let textScoreBoard = document.querySelector('.menu p:last-of-type');
-    let boardContainer = document.querySelector('.board-container');
-    let roundEndMessage = document.querySelector('.round-end-message');
-    let roundEndContainer = document.querySelector('.round-end');
-    let canvasCrossLine = document.querySelector('.round-end canvas:first-child');
-    let canvasContainer = document.querySelector('.round-end .canvas-container');
-    let canvasMessage = roundEndContainer.querySelector('.canvas-container canvas');
+    let aiTurn = false;
+    const playerXScoreBoard = document.querySelector('.player-x');
+    const playerOScoreBoard = document.querySelector('.player-o');
+    const textScoreBoard = document.querySelector('.menu p:last-of-type');
+    const boardContainer = document.querySelector('.board-container');
+    const roundEndMessage = document.querySelector('.round-end-message');
+    const roundEndContainer = document.querySelector('.round-end');
+    const canvasCrossLine = document.querySelector('.round-end canvas:first-child');
+    const canvasContainer = document.querySelector('.round-end .canvas-container');
+    const canvasMessage = roundEndContainer.querySelector('.canvas-container canvas');
     const WINNING_COMBINATIONS =[['1','2','3'],['4','5','6'],['7','8','9'],
                                 ['1','4','7'],['2','5','8'],['3','6','9'],
                                 ['1','5','9'],['3','5','7']
                                 ];
+    let currentBoardState = [1,2,3,4,5,6,7,8,9];
+    let humanMark; 
+    let aiMark;
+    let availableChoices = [1,2,3,4,5,6,7,8,9];
+    let xScore = 0;
+    let oScore = 0;
 
     let _gameStart = function(){
         _createBoard();
         _changeDifficulty();
-        _playAsChoice();
+        
         boardCells = document.querySelectorAll('.board > div[data-cell]');
-
+        
         boardCells.forEach(el => {
             el.addEventListener('click', boardCellsControl);
         });
     };
 
-    let _checkIfWon = function(playerChoices, unavailableCells, playerX, playerO, winner) {
+    let _checkIfWon = function(playerChoices, playerX, playerO, winner) {
+        console.log(playerChoices, playerX, playerO, winner);
         let won = WINNING_COMBINATIONS.find(combination => combination.every(item => playerChoices.includes(item)));
+        let unavailableCells = 9 - availableChoices.length;
         if(won || unavailableCells === 9){
             
             _roundEndAnimation(winner, unavailableCells, won);
@@ -38,20 +45,18 @@ const gameFlow = (function(){
 
             if(winner === 'x'){
                 playerX.wonRound();
-                updateScoreScreen(playerX, 'x');
+                xScore++;
+                updateScoreScreen('x');
                 playerXScoreBoard.classList.add('active');
                 playerOScoreBoard.classList.remove('active');
-                if(playVsFriend){
-                    updateScoreBoardText('x', true);
-                }
-            } else{
+                updateScoreBoardText('x', true);  
+            } else if(winner === 'o'){
                 playerO.wonRound();
-                updateScoreScreen(playerO, 'o'); 
+                oScore++;
+                updateScoreScreen('o'); 
                 playerXScoreBoard.classList.remove('active');
                 playerOScoreBoard.classList.add('active');
-                if(playVsFriend){
-                    updateScoreBoardText('o', true);
-                } 
+                updateScoreBoardText('o', true);
             }
 
             // wait for roundEndAnimation then reset round
@@ -82,6 +87,9 @@ const gameFlow = (function(){
                         el.addEventListener('click', boardCellsControl);
                     });
                     resetRoundEndAnimation();
+                    currentBoardState = [1,2,3,4,5,6,7,8,9];
+                    availableChoices = [1,2,3,4,5,6,7,8,9];
+                    
                     if(playVsFriend){
                         updateScoreBoardText(playerTurn);
                         if(playerTurn === 'x'){
@@ -91,6 +99,12 @@ const gameFlow = (function(){
                             playerXScoreBoard.classList.remove('active');
                             playerOScoreBoard.classList.add('active');
                         }
+                    }else{
+                        textScoreBoard.innerHTML = 'Start game or choose player';
+                        aiTurn = false;
+                        playerXScoreBoard.classList.add('active');
+                        playerOScoreBoard.classList.remove('active');
+                        _playAsChoice();
                     }
                 }
 
@@ -100,7 +114,7 @@ const gameFlow = (function(){
                     roundEndContainer.style.backgroundColor = 'transparent';
 
                     // if draw
-                    if(unavailableCells === 9){
+                    if(unavailableCells === 9 && !won){
                         canvasContainer.removeChild(canvasContainer.querySelector('.clone'));
                         canvasMessage.style.width = '100%';
                         roundEndContainer.style.display = 'none';
@@ -112,77 +126,118 @@ const gameFlow = (function(){
 
             },1100);
         }
+        else if(!playVsFriend){
+            if(aiTurn){
+                aiTurn = false;
+                availableChoices.forEach(el => {
+                    boardCells[el-1].addEventListener('click', boardCellsControl);
+                });
+            }else{
+                aiTurn = true;
+                boardCells.forEach(el => {
+                    el.removeEventListener('click', boardCellsControl)
+                });
+                setTimeout(function() {
+                    boardCellsControl.call(ai); 
+                }, 700);
+            }
+        }
     };
 
     let _whoIsX = function(){
-        if(player1.getPlayAs() === 'x'){
-            return {
-                playerX: player1,
-                playerO: friend
-            };
-        } else{
-            return {
-                playerX: friend,
-                playerO: player1
-            };
+        if(playVsFriend){
+            if(player1.getPlayAs() === 'x'){
+                return {
+                    playerX: player1,
+                    playerO: friend
+                };
+            } else{
+                return {
+                    playerX: friend,
+                    playerO: player1
+                };
+            }
+        }
+        else{
+            if(player1.getPlayAs() === 'x'){
+                humanMark = 'x';
+                aiMark = 'o';
+                return {
+                    playerX: player1,
+                    playerO: ai
+                };
+            } else{
+                humanMark = 'o';
+                aiMark = 'x';
+                return {
+                    playerX: ai,
+                    playerO: player1
+                };
+            }
         }
     };
 
     let boardCellsControl = function (e){
-        e.stopPropagation();
-        let chosenCell = e.currentTarget;
-        let chosenCellValue = chosenCell.dataset.cell;
-        chosenCell.removeEventListener('click', boardCellsControl);
         let {playerX, playerO} = _whoIsX();
-        let sum;
+        let chosenCell;
+        let chosenCellValue;
+
+        if(!aiTurn){
+            e.stopPropagation();
+            chosenCell = e.currentTarget;
+            chosenCellValue = chosenCell.dataset.cell;
+        }
+        else{
+            let aiChoice = this.easyModeChoice(currentBoardState, availableChoices);
+            chosenCellValue = aiChoice;
+            chosenCell = boardCells[aiChoice-1];
+        }
+
 
         if(playerTurn === 'x'){
             playerX.setChoices(chosenCellValue);
+            currentBoardState[chosenCellValue-1] = 'x';
+            availableChoices = currentBoardState.filter(el => el != 'x' && el != 'o');
             _drawX(chosenCell.querySelector('canvas'));
             playerXScoreBoard.classList.remove('active');
             playerOScoreBoard.classList.add('active');
             updateScoreBoardText('o');
-            sum = playerX.getChoices().length + playerO.getChoices().length;
-            if(sum > 4){
-                _checkIfWon(playerX.getChoices(), sum, playerX, playerO, 'x');
-            }
+            _checkIfWon(playerX.getChoices(), playerX, playerO, 'x');
             playerTurn = 'o';
         }
         else if(playerTurn === 'o'){
             playerO.setChoices(chosenCellValue);
+            currentBoardState[chosenCellValue-1] = 'o';
+            availableChoices = currentBoardState.filter(el => el != 'x' && el != 'o');
             _drawCircle(chosenCell.querySelector('canvas'));
             playerOScoreBoard.classList.remove('active');
             playerXScoreBoard.classList.add('active');
             updateScoreBoardText('x');
-            sum = playerX.getChoices().length + playerO.getChoices().length;
-            if(sum > 4){
-                _checkIfWon(playerO.getChoices(), sum, playerX, playerO, 'o');
-            }
+            _checkIfWon(playerO.getChoices(), playerX, playerO, 'o');
             playerTurn = 'x';
         }
     };
 
     let updateScoreBoardText = function(whoNow, winner = false){
-        if(playVsFriend){
-            if(!winner)
-                textScoreBoard.innerHTML = `It's <b>${whoNow.toUpperCase()}</b> turn`;
-            else
-                textScoreBoard.innerHTML = 'Game over';
-        }
+        if(!winner)
+            textScoreBoard.innerHTML = `It's <b>${whoNow.toUpperCase()}</b> turn`;
+        else
+            textScoreBoard.innerHTML = 'Game over';
+        
     };
 
-    let updateScoreScreen = function(player, who) {
+    let updateScoreScreen = function(who) {
         let scoreX = document.querySelector('.player-x span:last-of-type');
         let scoreO = document.querySelector('.player-o span:last-of-type');
 
-        who === 'x' ? scoreX.innerHTML = `${player.getRoundsWon()}` : scoreO.innerHTML = `${player.getRoundsWon()}`;
+        who === 'x' ? scoreX.innerHTML = `${xScore}` : scoreO.innerHTML = `${oScore}`;
     };
 
     let _roundEndAnimation = function(winner, unavailableCells, wonCombination){
         let text = roundEndContainer.querySelector('h1');
 
         // DRAW
-        if(unavailableCells === 9){
+        if(unavailableCells === 9 && !wonCombination){
             let canvasClone = canvasMessage.cloneNode();
             canvasClone.classList.add('clone');
             canvasContainer.appendChild(canvasClone);
@@ -415,19 +470,25 @@ const gameFlow = (function(){
             let value = difficultyEl.value;
             switch(value){
                 case 'easy':
-                    // reset game and run easy AI
-                    console.log('easy');
+                    _fullReset('ai');
+                    playVsFriend = false;
+                    textScoreBoard.innerHTML = `Start game or choose player`;
+                    _playAsChoice();
                     break;
                 case 'intermediate':
-                    // reset game and run intermediate AI
-                    console.log('intermediate');
+                    _fullReset('ai');
+                    playVsFriend = false;
+                    textScoreBoard.innerHTML = `Start game or choose player`;
+                    _playAsChoice();
                     break;
                 case 'impossible':
-                    // reset game and run impossible AI
-                    console.log('impossible');
+                    _fullReset('ai');
+                    playVsFriend = false;
+                    textScoreBoard.innerHTML = `Start game or choose player`;
+                    _playAsChoice();
                     break;
                 case 'friends':
-                    _fullReset();
+                    _fullReset('friend');
                     playVsFriend = true;
                     textScoreBoard.innerHTML = `It's <b>X</b> turn`;
                     break;
@@ -437,22 +498,34 @@ const gameFlow = (function(){
         onChange();
     };
 
-    let _fullReset = function(){
+    let _fullReset = function(secondPlayer){
+        let scoreXScreen = document.querySelector('.player-x span:last-of-type');
+        let scoreOScreen = document.querySelector('.player-o span:last-of-type');
         player1.resetChoices();
         player1.resetRounds();
-        friend.resetChoices();
-        friend.resetRounds();
-        updateScoreScreen(player1, 'x');
-        updateScoreScreen(friend, 'o');
+        xScore = 0;
+        oScore = 0;
+        scoreXScreen.innerHTML = '_';
+        scoreOScreen.innerHTML = '_';
+        
         playerXScoreBoard.classList.add('active');
         playerOScoreBoard.classList.remove('active');
-        message.classList.add('hide');
-        board.classList.remove('hide');
         playerTurn = 'x';
         boardContainer.style.cursor = 'auto';
         roundEndContainer.style.display = 'none';
         roundEndMessage.style.display = 'none';
         roundEndContainer.style.backgroundColor = 'transparent';
+
+        if(secondPlayer === 'friend'){
+            playerOScoreBoard.removeEventListener('click', _changePlayer);
+            friend.resetChoices();
+            friend.resetRounds();
+        }
+        else if(secondPlayer === 'ai'){
+            _playAsChoice();
+            player1.setPlayAs('x');
+            aiTurn = false;
+        }
 
         // reset for draw screen message
         let canvasClone = canvasContainer.querySelector('.clone');
@@ -477,14 +550,18 @@ const gameFlow = (function(){
     };
 
     let _playAsChoice = function(){
-        let btns = document.querySelectorAll('.score > div');
-
-        btns.forEach(el => {
-            el.addEventListener('click', e => {
-                console.log(e.currentTarget);    
-            });
-        });
+        playerOScoreBoard.addEventListener('click', _changePlayer,{once:true});
     };
+
+    let _changePlayer = function(e){
+        player1.setPlayAs('o'); 
+        playerOScoreBoard.classList.add('active');
+        playerXScoreBoard.classList.remove('active');
+
+        // AI first move
+        aiTurn = true;
+        boardCellsControl.call(ai);
+    }
 
 
     let _createBoard = function(){
@@ -600,15 +677,16 @@ const Player = () => {
     let choices = [];
     let roundsWon = 0;
     
-    let getPlayAs = () => playAs;
-    let getChoices = () => choices;
-    let setChoices = (choice) => choices.push(choice);
-    let resetChoices = () => choices = [];
-    let wonRound = () => roundsWon++;
-    let resetRounds = () => roundsWon = 0;
-    let getRoundsWon = () => roundsWon;
+    const getPlayAs = () => playAs;
+    const setPlayAs = (x) => playAs = x;
+    const getChoices = () => choices;
+    const setChoices = (choice) => choices.push(choice);
+    const resetChoices = () => choices = [];
+    const wonRound = () => roundsWon++;
+    const resetRounds = () => roundsWon = 0;
+    const getRoundsWon = () => roundsWon;
 
-    return {getPlayAs,getChoices,setChoices, resetChoices, wonRound, resetRounds, getRoundsWon};
+    return {getPlayAs,getChoices,setChoices, resetChoices, wonRound, resetRounds, getRoundsWon, setPlayAs};
 };
 
 const Friend = () => {
@@ -619,7 +697,23 @@ const Friend = () => {
     return {getChoices,setChoices, resetChoices, wonRound, resetRounds, getRoundsWon};
 };
 
-const player1 = Player();
-const friend = Friend(); 
+const AI = () => {
+    let choices = [];
+    let roundsWon = 0;
+
+    const easyModeChoice = function(currBdSt, availableChoices){
+        let getRandomInt = max => Math.floor(Math.random() * max);
+
+        return availableChoices[getRandomInt(availableChoices.length)].toString();
+    };
+
+    const {getChoices, setChoices, resetChoices,
+         wonRound, resetRounds, getRoundsWon} = Player();
+    return {getChoices,setChoices, resetChoices, wonRound, resetRounds, getRoundsWon, easyModeChoice};
+};
+
+const player1 = Player(); 
+const friend = Friend();
+const ai = AI();
 gameFlow.init();
 
