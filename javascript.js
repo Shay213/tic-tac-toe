@@ -729,7 +729,23 @@ const AI = () => {
     };
 
     const intermediate = function(currBdSt, availableChoices, humanMark, winCom){
-        
+        let getRandomInt = max => Math.floor(Math.random() * max);
+        let aiChoice;
+        winCom.forEach(el => {
+            const boardTriple = el.map(e => currBdSt[+e-1]);
+            const numberOfOpponentSymbols = boardTriple.filter(s => s === humanMark).length;
+            const numberOfEmpty = boardTriple.filter(s => s != 'x' && s != 'o').length;
+
+            if(numberOfOpponentSymbols === 2 && numberOfEmpty === 1){
+                boardTriple.forEach(e => {
+                    if(e != 'x' && e != 'o'){
+                        aiChoice = e;
+                    }
+                });
+            }
+        });
+        console.log(aiChoice);
+        return aiChoice ? aiChoice : availableChoices[getRandomInt(availableChoices.length)];
     };
 
     const impossible = function(currBdSt, currMark, humanMark, aiMark){
