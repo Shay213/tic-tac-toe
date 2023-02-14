@@ -3,6 +3,7 @@ const gameFlow = (function(){
     let playerTurn = 'x';
     let playVsFriend = false;
     let aiTurn = false;
+    let aiDifficulty = 'easy';
     const playerXScoreBoard = document.querySelector('.player-x');
     const playerOScoreBoard = document.querySelector('.player-o');
     const textScoreBoard = document.querySelector('.menu p:last-of-type');
@@ -17,8 +18,8 @@ const gameFlow = (function(){
                                 ['1','5','9'],['3','5','7']
                                 ];
     let currentBoardState = [1,2,3,4,5,6,7,8,9];
-    let humanMark; 
-    let aiMark;
+    let humanMark = 'x'; 
+    let aiMark = 'o';
     let availableChoices = [1,2,3,4,5,6,7,8,9];
     let xScore = 0;
     let oScore = 0;
@@ -35,15 +36,17 @@ const gameFlow = (function(){
     };
 
     let _checkIfWon = function(playerChoices, playerX, playerO, winner) {
-        console.log(playerChoices, playerX, playerO, winner);
+        //console.log(playerChoices, playerX, playerO, winner);
         let won = WINNING_COMBINATIONS.find(combination => combination.every(item => playerChoices.includes(item)));
         let unavailableCells = 9 - availableChoices.length;
         if(won || unavailableCells === 9){
             
             _roundEndAnimation(winner, unavailableCells, won);
             
-
-            if(winner === 'x'){
+            if(unavailableCells === 9 && !won){
+                console.log('draw');
+            }
+            else if(winner === 'x'){
                 playerX.wonRound();
                 xScore++;
                 updateScoreScreen('x');
@@ -188,10 +191,23 @@ const gameFlow = (function(){
             chosenCellValue = chosenCell.dataset.cell;
         }
         else{
-            let aiChoice = this.easyModeChoice(currentBoardState, availableChoices);
+            //here this refers to ai object 
+            let aiChoice;
+            switch(aiDifficulty){
+                case 'easy':
+                    aiChoice = this.easy(availableChoices);
+                    break;
+                case 'intermediate':
+                    aiChoice = this.intermediate(currentBoardState, availableChoices, humanMark, WINNING_COMBINATIONS).toString();
+                    break;
+                case 'impossible':
+                    aiChoice = this.impossible(currentBoardState, playerTurn, humanMark, aiMark).index.toString();
+                    break;
+            }
             chosenCellValue = aiChoice;
-            chosenCell = boardCells[aiChoice-1];
+            chosenCell = boardCells[+aiChoice-1];
         }
+        chosenCell.removeEventListener('click', boardCellsControl);
 
 
         if(playerTurn === 'x'){
@@ -472,18 +488,21 @@ const gameFlow = (function(){
                 case 'easy':
                     _fullReset('ai');
                     playVsFriend = false;
+                    aiDifficulty = 'easy';
                     textScoreBoard.innerHTML = `Start game or choose player`;
                     _playAsChoice();
                     break;
                 case 'intermediate':
                     _fullReset('ai');
                     playVsFriend = false;
+                    aiDifficulty = 'intermediate';
                     textScoreBoard.innerHTML = `Start game or choose player`;
                     _playAsChoice();
                     break;
                 case 'impossible':
                     _fullReset('ai');
                     playVsFriend = false;
+                    aiDifficulty = 'impossible';
                     textScoreBoard.innerHTML = `Start game or choose player`;
                     _playAsChoice();
                     break;
@@ -505,6 +524,8 @@ const gameFlow = (function(){
         player1.resetRounds();
         xScore = 0;
         oScore = 0;
+        currentBoardState = [1,2,3,4,5,6,7,8,9];
+        availableChoices = [1,2,3,4,5,6,7,8,9];
         scoreXScreen.innerHTML = '_';
         scoreOScreen.innerHTML = '_';
         
@@ -701,19 +722,101 @@ const AI = () => {
     let choices = [];
     let roundsWon = 0;
 
-    const easyModeChoice = function(currBdSt, availableChoices){
+    const easy = function(availableChoices){
         let getRandomInt = max => Math.floor(Math.random() * max);
 
         return availableChoices[getRandomInt(availableChoices.length)].toString();
     };
 
+    const intermediate = function(currBdSt, availableChoices, humanMark, winCom){
+        
+    };
+
+    const impossible = function(currBdSt, currMark, humanMark, aiMark){
+        function minimax(currBdSt, currMark){
+            const availCellsIndexes = getAllEmptyCellsIndexes(currBdSt);
+
+            if(checkIfWinnerFound(currBdSt, humanMark)){
+                return {score: -1};
+            }else if(checkIfWinnerFound(currBdSt, aiMark)){
+                return {score: 1};
+            } else if(availCellsIndexes.length === 0){
+                return {score: 0};
+            }
+
+            const allTestPlayInfos = [];
+
+            for(let i=0; i<availCellsIndexes.length; i++){
+                const currentTestPlayInfo = {};
+                currentTestPlayInfo.index = currBdSt[availCellsIndexes[i]-1];
+                currBdSt[availCellsIndexes[i]-1] = currMark;
+
+                if(currMark === aiMark){
+                    const result = minimax(currBdSt, humanMark);
+                    currentTestPlayInfo.score = result.score;
+                }else{
+                    const result = minimax(currBdSt, aiMark);
+                    currentTestPlayInfo.score = result.score;
+                }
+                currBdSt[availCellsIndexes[i]-1] = currentTestPlayInfo.index;
+                allTestPlayInfos.push(currentTestPlayInfo);
+            }
+
+            const sorted = allTestPlayInfos.sort((a,b) => a.score - b.score);
+            
+            if(currMark === aiMark) {
+                return sorted.pop();
+            }else{
+                return sorted[0];
+            }
+        }
+
+        return minimax(currBdSt, currMark);
+    };
+
+    function getAllEmptyCellsIndexes(currBdSt){
+        return currBdSt.filter(el => el != 'x' && el != 'o');
+    }
+
+    function checkIfWinnerFound(currBdSt, currMark) {
+        if (
+          (currBdSt[0] === currMark &&
+            currBdSt[1] === currMark &&
+            currBdSt[2] === currMark) ||
+          (currBdSt[3] === currMark &&
+            currBdSt[4] === currMark &&
+            currBdSt[5] === currMark) ||
+          (currBdSt[6] === currMark &&
+            currBdSt[7] === currMark &&
+            currBdSt[8] === currMark) ||
+          (currBdSt[0] === currMark &&
+            currBdSt[3] === currMark &&
+            currBdSt[6] === currMark) ||
+          (currBdSt[1] === currMark &&
+            currBdSt[4] === currMark &&
+            currBdSt[7] === currMark) ||
+          (currBdSt[2] === currMark &&
+            currBdSt[5] === currMark &&
+            currBdSt[8] === currMark) ||
+          (currBdSt[0] === currMark &&
+            currBdSt[4] === currMark &&
+            currBdSt[8] === currMark) ||
+          (currBdSt[2] === currMark &&
+            currBdSt[4] === currMark &&
+            currBdSt[6] === currMark)
+        ) {
+          return true;
+        } else {
+          return false;
+        }
+    }
+
     const {getChoices, setChoices, resetChoices,
          wonRound, resetRounds, getRoundsWon} = Player();
-    return {getChoices,setChoices, resetChoices, wonRound, resetRounds, getRoundsWon, easyModeChoice};
+    return {getChoices,setChoices, resetChoices, wonRound, resetRounds, getRoundsWon, easy, impossible, intermediate};
 };
 
 const player1 = Player(); 
 const friend = Friend();
 const ai = AI();
 gameFlow.init();
-
